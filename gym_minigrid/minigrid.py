@@ -10,48 +10,48 @@ CELL_PIXELS = 32
 
 # Map of color names to RGB values
 COLORS = {
-    'red'   : np.array([255, 0, 0]),
-    'green' : np.array([0, 255, 0]),
-    'blue'  : np.array([0, 0, 255]),
+    'red': np.array([255, 0, 0]),
+    'green': np.array([0, 255, 0]),
+    'blue': np.array([0, 0, 255]),
     'purple': np.array([112, 39, 195]),
     'yellow': np.array([255, 255, 0]),
-    'grey'  : np.array([100, 100, 100])
+    'grey': np.array([100, 100, 100])
 }
 
 COLOR_NAMES = sorted(list(COLORS.keys()))
 
 # Used to map colors to integers
 COLOR_TO_IDX = {
-    'red'   : 0,
-    'green' : 1,
-    'blue'  : 2,
+    'red': 0,
+    'green': 1,
+    'blue': 2,
     'purple': 3,
     'yellow': 4,
-    'grey'  : 5
+    'grey': 5
 }
 
 IDX_TO_COLOR = dict(zip(COLOR_TO_IDX.values(), COLOR_TO_IDX.keys()))
 
 # Map of object type to integers
 OBJECT_TO_IDX = {
-    'unseen'        : 0,
-    'empty'         : 1,
-    'wall'          : 2,
-    'floor'         : 3,
-    'door'          : 4,
-    'key'           : 5,
-    'ball'          : 6,
-    'box'           : 7,
-    'goal'          : 8,
-    'lava'          : 9,
-    'agent'         : 10,
+    'unseen': 0,
+    'empty': 1,
+    'wall': 2,
+    'floor': 3,
+    'door': 4,
+    'key': 5,
+    'ball': 6,
+    'box': 7,
+    'goal': 8,
+    'lava': 9,
+    'agent': 10,
 }
 
 IDX_TO_OBJECT = dict(zip(OBJECT_TO_IDX.values(), OBJECT_TO_IDX.keys()))
 
 # Map of state names to integers
 STATE_TO_IDX = {
-    'open'  : 0,
+    'open': 0,
     'closed': 1,
     'locked': 2,
 }
@@ -67,6 +67,7 @@ DIR_TO_VEC = [
     # Up (negative Y)
     np.array((0, -1)),
 ]
+
 
 class WorldObj:
     """
@@ -116,6 +117,7 @@ class WorldObj:
         r.setLineColor(c[0], c[1], c[2])
         r.setColor(c[0], c[1], c[2])
 
+
 class Goal(WorldObj):
     def __init__(self):
         super().__init__('goal', 'green')
@@ -126,19 +128,21 @@ class Goal(WorldObj):
     def render(self, r):
         self._set_color(r)
         r.drawPolygon([
-            (0          , CELL_PIXELS),
+            (0, CELL_PIXELS),
             (CELL_PIXELS, CELL_PIXELS),
             (CELL_PIXELS,           0),
-            (0          ,           0)
+            (0,           0)
         ])
+
 
 class Floor(WorldObj):
     """
     Colored floor tile the agent can walk over
     """
 
-    def __init__(self, color='blue'):
+    def __init__(self, color='blue', contains=None):
         super().__init__('floor', color)
+        self.contains = contains
 
     def can_overlap(self):
         return True
@@ -149,11 +153,19 @@ class Floor(WorldObj):
         r.setLineColor(100, 100, 100, 0)
         r.setColor(*c/2)
         r.drawPolygon([
-            (1          , CELL_PIXELS),
+            (1, CELL_PIXELS),
             (CELL_PIXELS, CELL_PIXELS),
             (CELL_PIXELS,           1),
-            (1          ,           1)
+            (1,           1)
         ])
+
+        if self.contains:
+            self.contains.render(r)
+
+    def can_contain(self):
+        """Can this contain another object?"""
+        return True
+
 
 class Lava(WorldObj):
     def __init__(self):
@@ -167,10 +179,10 @@ class Lava(WorldObj):
         r.setLineColor(*orange)
         r.setColor(*orange)
         r.drawPolygon([
-            (0          , CELL_PIXELS),
+            (0, CELL_PIXELS),
             (CELL_PIXELS, CELL_PIXELS),
             (CELL_PIXELS, 0),
-            (0          , 0)
+            (0, 0)
         ])
 
         # drawing the waves
@@ -200,6 +212,7 @@ class Lava(WorldObj):
             (.9 * CELL_PIXELS, .7 * CELL_PIXELS),
         ])
 
+
 class Wall(WorldObj):
     def __init__(self, color='grey'):
         super().__init__('wall', color)
@@ -210,11 +223,12 @@ class Wall(WorldObj):
     def render(self, r):
         self._set_color(r)
         r.drawPolygon([
-            (0          , CELL_PIXELS),
+            (0, CELL_PIXELS),
             (CELL_PIXELS, CELL_PIXELS),
             (CELL_PIXELS,           0),
-            (0          ,           0)
+            (0,           0)
         ])
+
 
 class Door(WorldObj):
     def __init__(self, color, is_open=False, is_locked=False):
@@ -249,23 +263,23 @@ class Door(WorldObj):
         if self.is_open:
             r.drawPolygon([
                 (CELL_PIXELS-2, CELL_PIXELS),
-                (CELL_PIXELS  , CELL_PIXELS),
-                (CELL_PIXELS  ,           0),
+                (CELL_PIXELS, CELL_PIXELS),
+                (CELL_PIXELS,           0),
                 (CELL_PIXELS-2,           0)
             ])
             return
 
         r.drawPolygon([
-            (0          , CELL_PIXELS),
+            (0, CELL_PIXELS),
             (CELL_PIXELS, CELL_PIXELS),
             (CELL_PIXELS,           0),
-            (0          ,           0)
+            (0,           0)
         ])
         r.drawPolygon([
-            (2            , CELL_PIXELS-2),
+            (2, CELL_PIXELS-2),
             (CELL_PIXELS-2, CELL_PIXELS-2),
             (CELL_PIXELS-2,           2),
-            (2            ,           2)
+            (2,           2)
         ])
 
         if self.is_locked:
@@ -279,6 +293,7 @@ class Door(WorldObj):
         else:
             # Draw door handle
             r.drawCircle(CELL_PIXELS * 0.75, CELL_PIXELS * 0.5, 2)
+
 
 class Key(WorldObj):
     def __init__(self, color='blue'):
@@ -317,6 +332,7 @@ class Key(WorldObj):
         r.setColor(0, 0, 0)
         r.drawCircle(18, 9, 2)
 
+
 class Ball(WorldObj):
     def __init__(self, color='blue'):
         super(Ball, self).__init__('ball', color)
@@ -327,6 +343,7 @@ class Ball(WorldObj):
     def render(self, r):
         self._set_color(r)
         r.drawCircle(CELL_PIXELS * 0.5, CELL_PIXELS * 0.5, 10)
+
 
 class Box(WorldObj):
     def __init__(self, color, contains=None):
@@ -343,10 +360,10 @@ class Box(WorldObj):
         r.setLineWidth(2)
 
         r.drawPolygon([
-            (4            , CELL_PIXELS-4),
+            (4, CELL_PIXELS-4),
             (CELL_PIXELS-4, CELL_PIXELS-4),
             (CELL_PIXELS-4,             4),
-            (4            ,             4)
+            (4,             4)
         ])
 
         r.drawLine(
@@ -362,6 +379,7 @@ class Box(WorldObj):
         # Replace the box by its contents
         env.grid.set(*pos, self.contains)
         return True
+
 
 class Grid:
     """
@@ -519,6 +537,16 @@ class Grid:
 
         r.pop()
 
+    @staticmethod
+    def get_object_state(obj):
+        # State, 0: open, 1: closed, 2: locked
+        state = 0
+        if hasattr(obj, 'is_open') and not obj.is_open:
+            state = 1
+        if hasattr(obj, 'is_locked') and obj.is_locked:
+            state = 2
+        return state
+
     def encode(self, vis_mask=None):
         """
         Produce a compact numpy encoding of the grid
@@ -535,21 +563,47 @@ class Grid:
 
                     if v is None:
                         array[i, j, 0] = OBJECT_TO_IDX['empty']
-                        array[i, j, 1] = 0
-                        array[i, j, 2] = 0
-                    else:
-                        # State, 0: open, 1: closed, 2: locked
-                        state = 0
-                        if hasattr(v, 'is_open') and not v.is_open:
-                            state = 1
-                        if hasattr(v, 'is_locked') and v.is_locked:
-                            state = 2
-
-                        array[i, j, 0] = OBJECT_TO_IDX[v.type]
-                        array[i, j, 1] = COLOR_TO_IDX[v.color]
-                        array[i, j, 2] = state
+                        continue
+                    if v.type == 'floor' and v.contains:
+                        # Agent doesn't see floor color if object on top.
+                        v = v.contains
+                    array[i, j, 0] = OBJECT_TO_IDX[v.type]
+                    array[i, j, 1] = COLOR_TO_IDX[v.color]
+                    array[i, j, 2] = Grid.get_object_state(v)
 
         return array
+
+    @staticmethod
+    def build_obj(typeIdx, colorIdx, state):
+        if typeIdx == OBJECT_TO_IDX['unseen'] or \
+                typeIdx == OBJECT_TO_IDX['empty']:
+            return None
+
+        objType = IDX_TO_OBJECT[typeIdx]
+        color = IDX_TO_COLOR[colorIdx]
+        # State, 0: open, 1: closed, 2: locked
+        is_open = state == 0
+        is_locked = state == 2
+
+        if objType == 'wall':
+            v = Wall(color)
+        elif objType == 'floor':
+            v = Floor(color)
+        elif objType == 'ball':
+            v = Ball(color)
+        elif objType == 'key':
+            v = Key(color)
+        elif objType == 'box':
+            v = Box(color)
+        elif objType == 'door':
+            v = Door(color, is_open, is_locked)
+        elif objType == 'goal':
+            v = Goal()
+        elif objType == 'lava':
+            v = Lava()
+        else:
+            assert False, "unknown obj type in decode '%s'" % objType
+        return v
 
     @staticmethod
     def decode(array):
@@ -563,36 +617,11 @@ class Grid:
         grid = Grid(width, height)
         for i in range(width):
             for j in range(height):
-                typeIdx, colorIdx, state = array[i, j]
+                typeIdx, colorIdx, state = array[i, j, :3]
 
-                if typeIdx == OBJECT_TO_IDX['unseen'] or \
-                        typeIdx == OBJECT_TO_IDX['empty']:
+                v = Grid.build_obj(typeIdx, colorIdx, state)
+                if not v:
                     continue
-
-                objType = IDX_TO_OBJECT[typeIdx]
-                color = IDX_TO_COLOR[colorIdx]
-                # State, 0: open, 1: closed, 2: locked
-                is_open = state == 0
-                is_locked = state == 2
-
-                if objType == 'wall':
-                    v = Wall(color)
-                elif objType == 'floor':
-                    v = Floor(color)
-                elif objType == 'ball':
-                    v = Ball(color)
-                elif objType == 'key':
-                    v = Key(color)
-                elif objType == 'box':
-                    v = Box(color)
-                elif objType == 'door':
-                    v = Door(color, is_open, is_locked)
-                elif objType == 'goal':
-                    v = Goal()
-                elif objType == 'lava':
-                    v = Lava()
-                else:
-                    assert False, "unknown obj type in decode '%s'" % objType
 
                 grid.set(i, j, v)
 
@@ -637,6 +666,7 @@ class Grid:
 
         return mask
 
+
 class MiniGridEnv(gym.Env):
     """
     2D grid world game environment
@@ -644,7 +674,7 @@ class MiniGridEnv(gym.Env):
 
     metadata = {
         'render.modes': ['human', 'rgb_array', 'pixmap'],
-        'video.frames_per_second' : 10
+        'video.frames_per_second': 10
     }
 
     # Enumeration of possible actions
@@ -772,14 +802,14 @@ class MiniGridEnv(gym.Env):
 
         # Map of object types to short string
         OBJECT_TO_STR = {
-            'wall'          : 'W',
-            'floor'         : 'F',
-            'door'          : 'D',
-            'key'           : 'K',
-            'ball'          : 'A',
-            'box'           : 'B',
-            'goal'          : 'G',
-            'lava'          : 'V',
+            'wall': 'W',
+            'floor': 'F',
+            'door': 'D',
+            'key': 'K',
+            'ball': 'A',
+            'box': 'B',
+            'goal': 'G',
+            'lava': 'V',
         }
 
         # Short string for opened door
@@ -899,12 +929,12 @@ class MiniGridEnv(gym.Env):
         )
 
     def place_obj(self,
-        obj,
-        top=None,
-        size=None,
-        reject_fn=None,
-        max_tries=math.inf
-    ):
+                  obj,
+                  top=None,
+                  size=None,
+                  reject_fn=None,
+                  max_tries=math.inf
+                  ):
         """
         Place an object at an empty position in the grid
 
@@ -1141,18 +1171,29 @@ class MiniGridEnv(gym.Env):
 
         # Pick up an object
         elif action == self.actions.pickup:
-            if fwd_cell and fwd_cell.can_pickup():
-                if self.carrying is None:
+            if fwd_cell and self.carrying is None:
+                if fwd_cell.can_pickup():
                     self.carrying = fwd_cell
                     self.carrying.cur_pos = np.array([-1, -1])
                     self.grid.set(*fwd_pos, None)
+                # Pickup object within non-pickupable object.
+                elif fwd_cell.contains and fwd_cell.contains.can_pickup():
+                    self.carrying = fwd_cell.contains
+                    self.carrying.cur_pos = np.array([-1, -1])
+                    fwd_cell.contains = None
 
         # Drop an object
         elif action == self.actions.drop:
-            if not fwd_cell and self.carrying:
-                self.grid.set(*fwd_pos, self.carrying)
-                self.carrying.cur_pos = fwd_pos
-                self.carrying = None
+            if self.carrying:
+                if not fwd_cell:
+                    self.grid.set(*fwd_pos, self.carrying)
+                    self.carrying.cur_pos = fwd_pos
+                    self.carrying = None
+                # Drop object into container or floor.
+                elif fwd_cell.can_contain() and not fwd_cell.contains:
+                    fwd_cell.contains = self.carrying
+                    self.carrying.cur_pos = fwd_pos
+                    self.carrying = None
 
         # Toggle/activate an object
         elif action == self.actions.toggle:
@@ -1182,7 +1223,8 @@ class MiniGridEnv(gym.Env):
 
         topX, topY, botX, botY = self.get_view_exts()
 
-        grid = self.grid.slice(topX, topY, self.agent_view_size, self.agent_view_size)
+        grid = self.grid.slice(
+            topX, topY, self.agent_view_size, self.agent_view_size)
 
         for i in range(self.agent_dir + 1):
             grid = grid.rotate_left()
@@ -1190,7 +1232,8 @@ class MiniGridEnv(gym.Env):
         # Process occluders and visibility
         # Note that this incurs some performance cost
         if not self.see_through_walls:
-            vis_mask = grid.process_vis(agent_pos=(self.agent_view_size // 2 , self.agent_view_size - 1))
+            vis_mask = grid.process_vis(agent_pos=(
+                self.agent_view_size // 2, self.agent_view_size - 1))
         else:
             vis_mask = np.ones(shape=(grid.width, grid.height), dtype=np.bool)
 
@@ -1215,7 +1258,8 @@ class MiniGridEnv(gym.Env):
         # Encode the partially observable view into a numpy array
         image = grid.encode(vis_mask)
 
-        assert hasattr(self, 'mission'), "environments must define a textual mission string"
+        assert hasattr(
+            self, 'mission'), "environments must define a textual mission string"
 
         # Observations are dictionaries containing:
         # - an image (partially observable view of the environment)
@@ -1263,7 +1307,7 @@ class MiniGridEnv(gym.Env):
         r.setColor(255, 0, 0)
         r.drawPolygon([
             (-12, 10),
-            ( 12,  0),
+            (12,  0),
             (-12, -10)
         ])
         r.pop()
@@ -1317,7 +1361,7 @@ class MiniGridEnv(gym.Env):
         r.setColor(255, 0, 0)
         r.drawPolygon([
             (-12, 10),
-            ( 12,  0),
+            (12,  0),
             (-12, -10)
         ])
         r.pop()
@@ -1329,7 +1373,8 @@ class MiniGridEnv(gym.Env):
         # of the agent's view area
         f_vec = self.dir_vec
         r_vec = self.right_vec
-        top_left = self.agent_pos + f_vec * (self.agent_view_size-1) - r_vec * (self.agent_view_size // 2)
+        top_left = self.agent_pos + f_vec * \
+            (self.agent_view_size-1) - r_vec * (self.agent_view_size // 2)
 
         # For each cell in the visibility mask
         if highlight:
